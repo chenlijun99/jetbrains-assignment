@@ -1,15 +1,22 @@
 <!-- Plugin Configuration File. Read more: https://plugins.jetbrains.com/docs/intellij/plugin-configuration-file.html -->
 <idea-plugin>
     <id>com.github.chenlijun99.jetbrainsassignment</id>
-    <name>jetbrains-assignment</name>
+    <name>clj-zstd-util</name>
     <vendor>chenlijun99</vendor>
 
     <depends>com.intellij.modules.platform</depends>
 
     <resource-bundle>messages.MyBundle</resource-bundle>
 
-    <extensions defaultExtensionNs="com.intellij">
-        <toolWindow factoryClass="com.github.chenlijun99.jetbrainsassignment.toolWindow.MyToolWindowFactory" id="MyToolWindow"/>
-        <postStartupActivity implementation="com.github.chenlijun99.jetbrainsassignment.startup.MyProjectActivity" />
-    </extensions>
+    <actions>
+        <action
+            id="com.github.chenlijun99.jetbrainsassignment.ZstdCompressAction"
+            class="com.github.chenlijun99.jetbrainsassignment.ZstdCompressAction"
+            text="Compress current file (zstd)"
+            description="Compress the current file using zstd">
+            <!--For the available groups-->
+            <!--See https://github.com/JetBrains/intellij-community/blob/idea/252.26830.84/platform/platform-resources/src/idea/PlatformActions.xml-->
+            <add-to-group group-id="EditorPopupMenu" anchor="last"/>
+        </action>
+    </actions>
 </idea-plugin>
