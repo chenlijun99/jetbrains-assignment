@@ -18,6 +18,8 @@ import com.intellij.openapi.application.edtWriteAction
 
 import com.github.luben.zstd.Zstd
 
+import com.github.chenlijun99.jetbrainsassignment.Bundle
+
 class ZstdCompressAction : DumbAwareAction() {
     override fun actionPerformed(e: AnActionEvent) {
         thisLogger().info("ZstdCompressAction triggered")
@@ -33,8 +35,8 @@ class ZstdCompressAction : DumbAwareAction() {
         val doCompression = if (existingFile != null) {
             Messages.showYesNoDialog(
                 project,
-                "File '$newFileName' already exists. Do you want to regenerate it?",
-                "File Exists",
+                Bundle.message("file.exists.message", newFileName),
+                Bundle.message("file.exists.title"),
                 Messages.getWarningIcon()
             ) == Messages.YES
         } else true
@@ -70,8 +72,8 @@ class ZstdCompressAction : DumbAwareAction() {
                 }
                 Messages.showInfoMessage(
                     project,
-                    "File '${newFile.name}' created successfully!",
-                    "Success"
+                    Bundle.message("file.created.message", newFile.name),
+                    Bundle.message("file.created.title")
                 )
             }
         }
