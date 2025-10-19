@@ -30,8 +30,9 @@ jobs:
   build:
     name: Build
     runs-on: ubuntu-latest
+    outputs:
+      plugin_folder_name: ${{ steps.artifact.outputs.filename }}
     steps:
-
       # Free GitHub Actions Environment Disk Space
       - name: Maximize Build Space
         uses: jlumbroso/free-disk-space@v1.3.1
@@ -68,8 +69,14 @@ jobs:
           unzip "$FILENAME" -d content
 
           echo "filename=${FILENAME:0:-4}" >> $GITHUB_OUTPUT
+          echo "plugin_zip_name=${FILENAME}" >> $GITHUB_OUTPUT
 
-      # Store an already-built plugin as an artifact for downloading
+      # Store the plugin unzipped, because artifacts are zip when uploaded.
+      # The end result is an artifact that, when downloaded through the GitHub
+      # link, is a zip that has the same format as the plugin zip and can be
+      # installed on Intellij IDEA directly.
+      #
+      # See https://github.com/actions/upload-artifact?tab=readme-ov-file#zip-archives
       - name: Upload artifact
         uses: actions/upload-artifact@v4
         with:
@@ -209,15 +216,14 @@ jobs:
 
   # Prepare a draft release for GitHub Releases page for the manual verification
   # If accepted and published, the release workflow would be triggered
-  releaseDraft:
-    name: Release draft
+  release:
+    name: Release
     if: github.event_name != 'pull_request'
     needs: [ build, test, inspectCode, verify ]
     runs-on: ubuntu-latest
     permissions:
       contents: write
     steps:
-
       # Check out the current repository
       - name: Fetch Sources
         uses: actions/checkout@v4
@@ -231,16 +237,25 @@ jobs:
             --jq '.[] | select(.draft == true) | .id' \
             | xargs -I '{}' gh api -X DELETE repos/{owner}/{repo}/releases/{}
 
-      # Create a new release draft which is not publicly visible and requires manual acceptance
-      - name: Create Release Draft
+      - name: Download Built Plugin
+        uses: actions/download-artifact@v4
+        with:
+          name: ${{ needs.build.outputs.plugin_folder_name }}
+          path: ./build/distributions/content/
+
+      - name: Prepare Plugin Zip File
+        run: |
+          cd ./build/distributions/content/ && zip ${{ needs.build.outputs.plugin_folder_name }}.zip -r ./*
+
+      - name: Create Release
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        if: startsWith(github.event.head_commit.message, 'release:')
         run: |
-          VERSION=$(./gradlew properties --property version --quiet --console=plain | tail -n 1 | cut -f2- -d ' ')
-          RELEASE_NOTE="./build/tmp/release_note.txt"
-          ./gradlew getChangelog --unreleased --no-header --quiet --console=plain --output-file=$RELEASE_NOTE
-          
-          gh release create $VERSION \
-            --draft \
-            --title $VERSION \
-            --notes-file $RELEASE_NOTE
+          ./scripts/release.sh false ./build/distributions/content/${{ needs.build.outputs.plugin_folder_name }}.zip
+      - name: Create Draft Release
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        if: "!startsWith(github.event.head_commit.message, 'release:')"
+        run: |
+          ./scripts/release.sh true ./build/distributions/content/${{ needs.build.outputs.plugin_folder_name }}.zip
