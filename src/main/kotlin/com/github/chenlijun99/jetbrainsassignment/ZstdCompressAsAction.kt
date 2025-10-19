@@ -56,46 +56,12 @@ class ZstdCompressAsAction : DumbAwareAction() {
         val saveFileDialog = FileChooserFactory.getInstance().createSaveFileDialog(descriptor, project)
         val saveFileWrapper = saveFileDialog.save(virtualFile.parent, defaultFileName)
 
-        val selectedFile = saveFileWrapper?.file
+        val selectedFile = saveFileWrapper?.file?.toPath()
         if (selectedFile == null) {
             thisLogger().info("File save dialog cancelled by user.")
             return
         }
 
-        currentThreadCoroutineScope().launch {
-            val compressedData = withContext(Dispatchers.Default) {
-                var compressed: ByteArray
-                val elapsed = measureTime {
-                    val compressionLevel = 3
-                    compressed = Zstd.compress(fileContent.toByteArray(Charsets.UTF_8), compressionLevel)
-                }
-                thisLogger().info("File compression performed in $elapsed")
-                compressed
-            }
-
-            try {
-                withContext(Dispatchers.IO) {
-                    selectedFile.writeBytes(compressedData)
-                }
-                withContext(Dispatchers.EDT) {
-                    notificationGroup
-                        .createNotification(
-                            Bundle.message("file.created.title"),
-                            Bundle.message("file.created.message", selectedFile.name),
-                            NotificationType.INFORMATION
-                        )
-                        .notify(project)
-                }
-            } catch (e: IOException) {
-                thisLogger().error("Failed to write compressed data to: ${selectedFile.path}", e)
-                notificationGroup
-                    .createNotification(
-                        Bundle.message("file.write.error.title"),
-                        Bundle.message("file.write.error.message", selectedFile.name, e.localizedMessage),
-                        NotificationType.ERROR
-                    )
-                    .notify(project)
-            }
-        }
+        ZstdCompressionUtil.performCompression(project, virtualFile, selectedFile)
     }
 }

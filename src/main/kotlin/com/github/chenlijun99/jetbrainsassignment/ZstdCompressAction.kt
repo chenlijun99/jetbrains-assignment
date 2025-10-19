@@ -21,8 +21,6 @@ import com.intellij.notification.NotificationGroupManager
 import com.github.luben.zstd.Zstd
 
 class ZstdCompressAction : DumbAwareAction() {
-    private val notificationGroup = NotificationGroupManager.getInstance()
-        .getNotificationGroup(Constants.NOTIFICATION_GROUP)
 
     override fun actionPerformed(e: AnActionEvent) {
         thisLogger().info("ZstdCompressAction triggered")
@@ -32,12 +30,15 @@ class ZstdCompressAction : DumbAwareAction() {
 
         val virtualFile = e.getData(CommonDataKeys.VIRTUAL_FILE) ?: return
         val parentDirectory = virtualFile.parent ?: return
-        val newFileName = "${virtualFile.name}.zst"
-        val existingFile = parentDirectory.findChild(newFileName)
+
+        var newFilePath = virtualFile.toNioPath()
+        newFilePath = newFilePath.parent.resolve("${newFilePath.fileName}.zst")
+
+        val existingFile = parentDirectory.findChild(newFilePath.fileName.toString())
         val doCompression = if (existingFile != null) {
             Messages.showYesNoDialog(
                 project,
-                Bundle.message("file.exists.message", newFileName),
+                Bundle.message("file.exists.message", newFilePath),
                 Bundle.message("file.exists.title"),
                 Messages.getWarningIcon()
             ) == Messages.YES
@@ -47,63 +48,7 @@ class ZstdCompressAction : DumbAwareAction() {
             return;
         }
 
-        val fileContent = try {
-            VfsUtil.loadText(virtualFile)
-        } catch (e: IOException) {
-            thisLogger().error("Failed to read file content: ${virtualFile.path}", e)
-            notificationGroup
-                .createNotification(
-                    Bundle.message("file.read.error.title"),
-                    Bundle.message("file.read.error.message", virtualFile.name, e.localizedMessage),
-                    NotificationType.ERROR
-                )
-                .notify(project)
-            return
-        }
-
-        currentThreadCoroutineScope().launch {
-            val compressedData = withContext(Dispatchers.Default) {
-                var compressed: ByteArray
-                val elapsed = measureTime {
-                    val compressionLevel = 3
-                    compressed = Zstd.compress(fileContent.toByteArray(Charsets.UTF_8), compressionLevel)
-                }
-                thisLogger().info("File compression performed in $elapsed")
-                compressed
-            }
-
-
-            withContext(Dispatchers.EDT) {
-                try {
-                    val newFile = edtWriteAction {
-                        val newFile =
-                            if (existingFile?.isValid == true) {
-                                existingFile
-                            } else {
-                                parentDirectory.createChildData(this, newFileName)
-                            }
-                        newFile.setBinaryContent(compressedData)
-                        newFile
-                    }
-                    notificationGroup
-                        .createNotification(
-                            Bundle.message("file.created.title"),
-                            Bundle.message("file.created.message", newFile.name),
-                            NotificationType.INFORMATION
-                        )
-                        .notify(project)
-                } catch (e: IOException) {
-                    notificationGroup
-                        .createNotification(
-                            Bundle.message("file.write.error.title"),
-                            Bundle.message("file.write.error.message", virtualFile.name, e.localizedMessage),
-                            NotificationType.ERROR
-                        )
-                        .notify(project)
-
-                }
-            }
-        }
+        ZstdCompressionUtil.performCompression(project, virtualFile, newFilePath)
     }
 
     override fun update(e: AnActionEvent) {
