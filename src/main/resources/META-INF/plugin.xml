@@ -8,6 +8,12 @@
 
     <resource-bundle>messages.Bundle</resource-bundle>
 
+    <extensions defaultExtensionNs="com.intellij">
+      <notificationGroup id="com.github.chenlijun99.jetbrainsassignment.NotificationGroup"
+                         displayType="BALLOON"
+                         key="notification.group.name"/>
+    </extensions>
+
     <actions>
         <action
             id="com.github.chenlijun99.jetbrainsassignment.ZstdCompressAction"

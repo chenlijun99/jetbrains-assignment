@@ -4,6 +4,11 @@
 
 ## [Unreleased]
 
+### Added
+
+- Disabled "Compress" action when current folder is not writable
+- Use balloon to show success and error notifications instead of dialog.
+
 ### Fixed
 
 - i18n: Removed useless "EN" suffix from english translations

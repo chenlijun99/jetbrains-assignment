@@ -15,26 +15,25 @@ import com.intellij.openapi.ui.Messages
 import com.intellij.openapi.project.DumbAwareAction
 import com.intellij.openapi.vfs.VfsUtil
 import com.intellij.openapi.application.edtWriteAction
+import com.intellij.notification.NotificationType
+import com.intellij.notification.NotificationGroupManager
 
 import com.github.luben.zstd.Zstd
 
-import com.github.chenlijun99.jetbrainsassignment.Bundle
-
 class ZstdCompressAction : DumbAwareAction() {
+    private val notificationGroup = NotificationGroupManager.getInstance()
+        .getNotificationGroup(Constants.NOTIFICATION_GROUP)
+
     override fun actionPerformed(e: AnActionEvent) {
         thisLogger().info("ZstdCompressAction triggered")
 
-        val project = e.project
-        val virtualFile = e.getData(CommonDataKeys.VIRTUAL_FILE)
-        if (virtualFile == null || project == null) {
-            return;
-        }
+        val virtualFile = e.getData(CommonDataKeys.VIRTUAL_FILE) ?: return
         val parentDirectory = virtualFile.parent ?: return
         val newFileName = "${virtualFile.name}.zst"
         val existingFile = parentDirectory.findChild(newFileName)
         val doCompression = if (existingFile != null) {
             Messages.showYesNoDialog(
-                project,
+                null,
                 Bundle.message("file.exists.message", newFileName),
                 Bundle.message("file.exists.title"),
                 Messages.getWarningIcon()
@@ -45,7 +44,19 @@ class ZstdCompressAction : DumbAwareAction() {
             return;
         }
 
-        val fileContent = VfsUtil.loadText(virtualFile)
+        val fileContent = try {
+            VfsUtil.loadText(virtualFile)
+        } catch (e: IOException) {
+            thisLogger().error("Failed to read file content: ${virtualFile.path}", e)
+            notificationGroup
+                .createNotification(
+                    Bundle.message("file.read.error.title"),
+                    Bundle.message("file.read.error.message", virtualFile.name, e.localizedMessage),
+                    NotificationType.ERROR
+                )
+                .notify(null)
+            return
+        }
 
         currentThreadCoroutineScope().launch {
             val compressedData = withContext(Dispatchers.Default) {
@@ -60,22 +71,44 @@ class ZstdCompressAction : DumbAwareAction() {
 
 
             withContext(Dispatchers.EDT) {
-                val newFile = edtWriteAction {
-                    val newFile =
-                        if (existingFile?.isValid == true) {
-                            existingFile
-                        } else {
-                            parentDirectory.createChildData(this, newFileName)
-                        }
-                    newFile.setBinaryContent(compressedData)
-                    newFile
+                try {
+                    val newFile = edtWriteAction {
+                        val newFile =
+                            if (existingFile?.isValid == true) {
+                                existingFile
+                            } else {
+                                parentDirectory.createChildData(this, newFileName)
+                            }
+                        newFile.setBinaryContent(compressedData)
+                        newFile
+                    }
+                    notificationGroup
+                        .createNotification(
+                            Bundle.message("file.created.title"),
+                            Bundle.message("file.created.message", newFile.name),
+                            NotificationType.INFORMATION
+                        )
+                        .notify(null)
+                } catch (e: IOException) {
+                    notificationGroup
+                        .createNotification(
+                            Bundle.message("file.write.error.title"),
+                            Bundle.message("file.write.error.message", virtualFile.name, e.localizedMessage),
+                            NotificationType.ERROR
+                        )
+                        .notify(null)
+
                 }
-                Messages.showInfoMessage(
-                    project,
-                    Bundle.message("file.created.message", newFile.name),
-                    Bundle.message("file.created.title")
-                )
             }
         }
+    }
+
+    override fun update(e: AnActionEvent) {
+        /*
+         * Enable the action only if folder of the current file is writable
+         * (e.g. the current file is not within a jar file).
+         */
+        val virtualFile = e.getData(CommonDataKeys.VIRTUAL_FILE)
+        e.presentation.isEnabled = virtualFile?.parent?.isWritable == true
     }
 }
