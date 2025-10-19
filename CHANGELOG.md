@@ -6,7 +6,8 @@
 
 ### Added
 
-- Disabled "Compress" action when current folder is not writable
+- Added "Compress (Save As)" action. Mostly to provide a solution for the case when the current file's folder is not writable.
+- Disabled "Compress" action when current folder is not writable.
 - Use balloon to show success and error notifications instead of dialog.
 
 ### Fixed

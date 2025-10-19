@@ -27,13 +27,16 @@ class ZstdCompressAction : DumbAwareAction() {
     override fun actionPerformed(e: AnActionEvent) {
         thisLogger().info("ZstdCompressAction triggered")
 
+        // Can be null, if not null gives more contextual info to user
+        val project = e.project
+
         val virtualFile = e.getData(CommonDataKeys.VIRTUAL_FILE) ?: return
         val parentDirectory = virtualFile.parent ?: return
         val newFileName = "${virtualFile.name}.zst"
         val existingFile = parentDirectory.findChild(newFileName)
         val doCompression = if (existingFile != null) {
             Messages.showYesNoDialog(
-                null,
+                project,
                 Bundle.message("file.exists.message", newFileName),
                 Bundle.message("file.exists.title"),
                 Messages.getWarningIcon()
@@ -54,7 +57,7 @@ class ZstdCompressAction : DumbAwareAction() {
                     Bundle.message("file.read.error.message", virtualFile.name, e.localizedMessage),
                     NotificationType.ERROR
                 )
-                .notify(null)
+                .notify(project)
             return
         }
 
@@ -88,7 +91,7 @@ class ZstdCompressAction : DumbAwareAction() {
                             Bundle.message("file.created.message", newFile.name),
                             NotificationType.INFORMATION
                         )
-                        .notify(null)
+                        .notify(project)
                 } catch (e: IOException) {
                     notificationGroup
                         .createNotification(
@@ -96,7 +99,7 @@ class ZstdCompressAction : DumbAwareAction() {
                             Bundle.message("file.write.error.message", virtualFile.name, e.localizedMessage),
                             NotificationType.ERROR
                         )
-                        .notify(null)
+                        .notify(project)
 
                 }
             }
