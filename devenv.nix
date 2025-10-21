@@ -59,6 +59,9 @@ in {
     jetbrains.idea-community-bin
     markdownlint-cli2
     gh
+    # Useful to analyze hprof files. 
+    # Sorry, don't have the money for Intellij Ultimate for now.
+    eclipse-mat
     (callPackage ./nix/kotlin-lsp.nix {})
   ];
 

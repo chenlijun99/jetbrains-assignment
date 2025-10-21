@@ -1,19 +1,26 @@
-package com.github.chenlijun99.jetbrainsassignment
+package com.github.chenlijun99.jetbrainsassignment.services
 
 import java.io.IOException
 import java.nio.file.Path
 import java.nio.file.Files
 
+import kotlin.math.log10
+import kotlin.math.pow
 import kotlin.time.measureTime
-import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.delay
+import kotlinx.coroutines.awaitAll
+import kotlinx.coroutines.joinAll
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.isActive
 
+import com.intellij.openapi.components.Service
+import com.intellij.openapi.diagnostic.thisLogger
 import com.intellij.openapi.progress.currentThreadCoroutineScope
 import com.intellij.notification.NotificationGroupManager
 import com.intellij.notification.NotificationType
-import com.intellij.openapi.application.edtWriteAction
 import com.intellij.openapi.application.EDT
 import com.intellij.openapi.diagnostic.thisLogger
 import com.intellij.openapi.project.Project
@@ -21,10 +28,14 @@ import com.intellij.openapi.vfs.VfsUtil
 import com.intellij.openapi.vfs.VirtualFile
 
 import com.github.luben.zstd.Zstd
-import kotlin.math.log10
-import kotlin.math.pow
 
-object ZstdCompressionUtil {
+import com.github.chenlijun99.jetbrainsassignment.Constants
+import com.github.chenlijun99.jetbrainsassignment.Bundle
+
+@Service
+class ZstdCompressionService(
+    private val cs: CoroutineScope
+) {
     private val notificationGroup = NotificationGroupManager.getInstance()
         .getNotificationGroup(Constants.NOTIFICATION_GROUP)
 
@@ -50,11 +61,12 @@ object ZstdCompressionUtil {
         val originalContentBytes = fileContent.toByteArray(Charsets.UTF_8)
         val originalSize = originalContentBytes.size.toLong()
 
-        currentThreadCoroutineScope().launch {
+        cs.launch {
             val compressedData = withContext(Dispatchers.Default) {
                 var compressed: ByteArray
                 val elapsed = measureTime {
                     val compressionLevel = 3
+                    //compressed = ByteArray(100) { i -> i.toByte() }
                     compressed = Zstd.compress(originalContentBytes, compressionLevel)
                 }
                 thisLogger().info("File compression performed in $elapsed")

@@ -1,26 +1,19 @@
 package com.github.chenlijun99.jetbrainsassignment
 
-import java.io.FileOutputStream
 import java.io.IOException
-
-import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.launch
-import kotlinx.coroutines.withContext
-import kotlin.time.measureTime
 
 import com.intellij.notification.NotificationGroupManager
 import com.intellij.notification.NotificationType
+import com.intellij.openapi.components.service
 import com.intellij.openapi.actionSystem.AnActionEvent
 import com.intellij.openapi.actionSystem.CommonDataKeys
-import com.intellij.openapi.application.EDT
 import com.intellij.openapi.diagnostic.thisLogger
 import com.intellij.openapi.fileChooser.FileChooserFactory
 import com.intellij.openapi.fileChooser.FileSaverDescriptor
-import com.intellij.openapi.progress.currentThreadCoroutineScope
 import com.intellij.openapi.project.DumbAwareAction
 import com.intellij.openapi.vfs.VfsUtil
 
-import com.github.luben.zstd.Zstd
+import com.github.chenlijun99.jetbrainsassignment.services.ZstdCompressionService
 
 class ZstdCompressAsAction : DumbAwareAction() {
     private val notificationGroup = NotificationGroupManager.getInstance()
@@ -62,6 +55,6 @@ class ZstdCompressAsAction : DumbAwareAction() {
             return
         }
 
-        ZstdCompressionUtil.performCompression(project, virtualFile, selectedFile)
+        service<ZstdCompressionService>().performCompression(project, virtualFile, selectedFile)
     }
 }

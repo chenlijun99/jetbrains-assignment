@@ -130,6 +130,12 @@ kover {
 }
 
 tasks {
+    /* Uncomment to debug plugin unloading issues */
+    // runIde {
+    //     jvmArgs = listOf(
+    //         "-XX:+UnlockDiagnosticVMOptions"
+    //     )
+    // }
     wrapper {
         gradleVersion = providers.gradleProperty("gradleVersion").get()
     }

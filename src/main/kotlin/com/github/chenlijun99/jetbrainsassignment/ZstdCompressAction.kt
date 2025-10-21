@@ -1,24 +1,13 @@
 package com.github.chenlijun99.jetbrainsassignment
 
-import java.io.IOException
-import kotlin.time.measureTime
-import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.withContext
-import kotlinx.coroutines.launch
-
-import com.intellij.openapi.progress.currentThreadCoroutineScope
-import com.intellij.openapi.application.EDT
+import com.intellij.openapi.components.service
 import com.intellij.openapi.actionSystem.CommonDataKeys
 import com.intellij.openapi.actionSystem.AnActionEvent
 import com.intellij.openapi.diagnostic.thisLogger
 import com.intellij.openapi.ui.Messages
 import com.intellij.openapi.project.DumbAwareAction
-import com.intellij.openapi.vfs.VfsUtil
-import com.intellij.openapi.application.edtWriteAction
-import com.intellij.notification.NotificationType
-import com.intellij.notification.NotificationGroupManager
 
-import com.github.luben.zstd.Zstd
+import com.github.chenlijun99.jetbrainsassignment.services.ZstdCompressionService
 
 class ZstdCompressAction : DumbAwareAction() {
 
@@ -48,7 +37,7 @@ class ZstdCompressAction : DumbAwareAction() {
             return;
         }
 
-        ZstdCompressionUtil.performCompression(project, virtualFile, newFilePath)
+        service<ZstdCompressionService>().performCompression(project, virtualFile, newFilePath)
     }
 
     override fun update(e: AnActionEvent) {
