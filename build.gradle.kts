@@ -31,7 +31,7 @@ repositories {
 
 // Dependencies are managed with Gradle version catalog - read more: https://docs.gradle.org/current/userguide/platforms.html#sub:version-catalog
 dependencies {
-    implementation("com.github.luben:zstd-jni:1.5.7-5")
+    implementation("com.github.luben:zstd-jni:1.5.7-6")
     testImplementation(libs.junit)
     testImplementation(libs.opentest4j)
 
