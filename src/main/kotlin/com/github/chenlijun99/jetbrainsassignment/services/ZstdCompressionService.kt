@@ -44,8 +44,8 @@ class ZstdCompressionService(
         sourceFile: VirtualFile,
         targetPath: Path,
     ) {
-        val fileContent = try {
-            VfsUtil.loadText(sourceFile)
+        val fileContentBytes = try {
+            sourceFile.contentsToByteArray()
         } catch (e: IOException) {
             thisLogger().error("Failed to read file content: ${sourceFile.path}", e)
             notificationGroup
@@ -58,16 +58,14 @@ class ZstdCompressionService(
             return
         }
 
-        val originalContentBytes = fileContent.toByteArray(Charsets.UTF_8)
-        val originalSize = originalContentBytes.size.toLong()
+        val originalSize = fileContentBytes.size.toLong()
 
         cs.launch {
             val compressedData = withContext(Dispatchers.Default) {
                 var compressed: ByteArray
                 val elapsed = measureTime {
                     val compressionLevel = 3
-                    //compressed = ByteArray(100) { i -> i.toByte() }
-                    compressed = Zstd.compress(originalContentBytes, compressionLevel)
+                    compressed = Zstd.compress(fileContentBytes, compressionLevel)
                 }
                 thisLogger().info("File compression performed in $elapsed")
                 compressed
@@ -114,6 +112,7 @@ class ZstdCompressionService(
                         targetPath.toFile()
                     )
                 } else {
+                    thisLogger().error("Failed to write compressed file content: ${targetPath}", error)
                     notificationGroup
                         .createNotification(
                             Bundle.message("file.write.error.title"),
