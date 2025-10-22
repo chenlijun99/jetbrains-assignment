@@ -7,7 +7,7 @@ import java.nio.file.Files
 import kotlin.math.log10
 import kotlin.math.pow
 import kotlin.time.measureTime
-import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.Job
 import kotlinx.coroutines.withContext
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.delay
@@ -22,7 +22,6 @@ import com.intellij.openapi.progress.currentThreadCoroutineScope
 import com.intellij.notification.NotificationGroupManager
 import com.intellij.notification.NotificationType
 import com.intellij.openapi.application.EDT
-import com.intellij.openapi.diagnostic.thisLogger
 import com.intellij.openapi.project.Project
 import com.intellij.openapi.vfs.VfsUtil
 import com.intellij.openapi.vfs.VirtualFile
@@ -31,6 +30,8 @@ import com.github.luben.zstd.Zstd
 
 import com.github.chenlijun99.jetbrainsassignment.Constants
 import com.github.chenlijun99.jetbrainsassignment.Bundle
+import com.github.chenlijun99.jetbrainsassignment.coroutine.AppDispatchers
+import com.github.chenlijun99.jetbrainsassignment.coroutine.DefaultAppDispatchers
 
 @Service
 class ZstdCompressionService(
@@ -43,35 +44,34 @@ class ZstdCompressionService(
         project: Project?,
         sourceFile: VirtualFile,
         targetPath: Path,
-    ) {
-        val fileContent = try {
-            VfsUtil.loadText(sourceFile)
-        } catch (e: IOException) {
-            thisLogger().error("Failed to read file content: ${sourceFile.path}", e)
-            notificationGroup
-                .createNotification(
-                    Bundle.message("file.read.error.title"),
-                    Bundle.message("file.read.error.message", sourceFile.name, e.localizedMessage),
-                    NotificationType.ERROR
-                )
-                .notify(project)
-            return
-        }
-
-        val originalContentBytes = fileContent.toByteArray(Charsets.UTF_8)
-        val originalSize = originalContentBytes.size.toLong()
-
-        cs.launch {
-            val compressedData = withContext(Dispatchers.Default) {
-                var compressed: ByteArray
-                val elapsed = measureTime {
-                    val compressionLevel = 3
-                    //compressed = ByteArray(100) { i -> i.toByte() }
-                    compressed = Zstd.compress(originalContentBytes, compressionLevel)
+        dispatchers: AppDispatchers = DefaultAppDispatchers()
+    ): Job {
+        return cs.launch(dispatchers.Default) {
+            val fileContentBytes = try {
+                sourceFile.contentsToByteArray()
+            } catch (e: IOException) {
+                //run {
+                withContext(dispatchers.EDT) {
+                    thisLogger().error("Failed to read file content: ${sourceFile.path}", e)
+                    notificationGroup
+                        .createNotification(
+                            Bundle.message("file.read.error.title"),
+                            Bundle.message("file.read.error.message", sourceFile.name, e.localizedMessage),
+                            NotificationType.ERROR
+                        )
+                        .notify(project)
                 }
-                thisLogger().info("File compression performed in $elapsed")
-                compressed
+                return@launch
             }
+
+            val originalSize = fileContentBytes.size.toLong()
+
+            var compressedData: ByteArray
+            val elapsed = measureTime {
+                val compressionLevel = 3
+                compressedData = Zstd.compress(fileContentBytes, compressionLevel)
+            }
+            thisLogger().info("File compression performed in $elapsed")
 
             val compressedSize = compressedData.size.toLong()
             val compressionPercentage = if (originalSize > 0) {
@@ -80,7 +80,7 @@ class ZstdCompressionService(
                 0.0
             }
 
-            val error = withContext(Dispatchers.IO) {
+            val error = withContext(dispatchers.IO) {
                 try {
                     Files.write(targetPath, compressedData)
                     null
@@ -89,7 +89,7 @@ class ZstdCompressionService(
                 }
             }
 
-            withContext(Dispatchers.EDT) {
+            withContext(dispatchers.EDT) {
                 if (error == null) {
                     notificationGroup
                         .createNotification(
@@ -114,6 +114,7 @@ class ZstdCompressionService(
                         targetPath.toFile()
                     )
                 } else {
+                    thisLogger().error("Failed to write compressed file content: ${targetPath}", error)
                     notificationGroup
                         .createNotification(
                             Bundle.message("file.write.error.title"),
@@ -123,7 +124,6 @@ class ZstdCompressionService(
                         .notify(project)
                 }
             }
-
         }
     }
 
