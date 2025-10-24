@@ -61,6 +61,8 @@ in {
     gh
     # For testing purposes
     zstd
+    # For cross-compilation
+    zig
     # Useful to analyze hprof files.
     # Sorry, don't have the money for Intellij Ultimate for now.
     eclipse-mat

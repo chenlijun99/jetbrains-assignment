@@ -43,6 +43,14 @@ jobs:
       # Check out the current repository
       - name: Fetch Sources
         uses: actions/checkout@v4
+        with:
+          submodules: true
+
+      # Set up Zig for cross-compilation
+      - name: Setup Zig
+        uses: mlugg/setup-zig@v2
+        with:
+          version: 0.14.1
 
       # Set up the Java environment for the next steps
       - name: Setup Java
@@ -55,7 +63,7 @@ jobs:
       - name: Setup Gradle
         uses: gradle/actions/setup-gradle@v4
 
-      # Build plugin
+      # Build plugin, including the native JNI bindings
       - name: Build plugin
         run: ./gradlew buildPlugin
 
@@ -69,7 +77,6 @@ jobs:
           unzip "$FILENAME" -d content
 
           echo "filename=${FILENAME:0:-4}" >> $GITHUB_OUTPUT
-          echo "plugin_zip_name=${FILENAME}" >> $GITHUB_OUTPUT
 
       # Store the plugin unzipped, because artifacts are zip when uploaded.
       # The end result is an artifact that, when downloaded through the GitHub
@@ -83,6 +90,15 @@ jobs:
           name: ${{ steps.artifact.outputs.filename }}
           path: ./build/distributions/content/*/*
 
+      - name: Upload zstd-jni native libraries
+        uses: actions/upload-artifact@v4
+        with:
+          name: zstd-jni-native-libraries
+          path: |
+            modules/zstd-jni/build/cmake-jni/**/*.so
+            modules/zstd-jni/build/cmake-jni/**/*.dll
+            modules/zstd-jni/build/cmake-jni/**/*.dylib
+
   # Run tests and upload a code coverage report
   test:
     name: Test
@@ -90,7 +106,18 @@ jobs:
     runs-on: ${{ matrix.os }}
     strategy:
       matrix:
-        os: [ubuntu-latest, windows-latest]
+        # Check out free runners for public repositories
+        # https://docs.github.com/en/actions/how-tos/write-workflows/choose-where-workflows-run/choose-the-runner-for-a-job#standard-github-hosted-runners-for-public-repositories
+        os:
+          - ubuntu-latest
+          - ubuntu-24.04-arm
+          - windows-latest
+          # This runner doesn't have zstd CLI tools, which we rely on for
+          # testing. Anyway, not so important for now.
+          # - windows-11-arm
+          - macos-15-intel
+          # This is arm
+          - macos-latest
     steps:
 
       # Free GitHub Actions Environment Disk Space
@@ -118,9 +145,16 @@ jobs:
         with:
           cache-read-only: true
 
+      # Download the zstd-jni native libraries artifact
+      - name: Download zstd-jni native libraries
+        uses: actions/download-artifact@v5
+        with:
+          name: zstd-jni-native-libraries
+          path: modules/zstd-jni/build/cmake-jni/
+
       # Run tests
       - name: Run Tests
-        run: ./gradlew check
+        run: ./gradlew :check --exclude-task :modules:zstd-jni:buildJniAll
 
       # Collect Tests Result of failed tests
       - name: Collect Tests Result
@@ -206,9 +240,15 @@ jobs:
         with:
           cache-read-only: true
 
+      - name: Download zstd-jni native libraries
+        uses: actions/download-artifact@v5
+        with:
+          name: zstd-jni-native-libraries
+          path: modules/zstd-jni/build/cmake-jni/
+
       # Run Verify Plugin task and IntelliJ Plugin Verifier tool
       - name: Run Plugin Verification tasks
-        run: ./gradlew verifyPlugin
+        run: ./gradlew verifyPlugin --exclude-task :modules:zstd-jni:buildJniAll
 
       # Collect Plugin Verifier Result
       - name: Collect Plugin Verifier Result
