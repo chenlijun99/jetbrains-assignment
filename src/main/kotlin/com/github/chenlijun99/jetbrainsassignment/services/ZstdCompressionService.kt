@@ -26,7 +26,7 @@ import com.intellij.openapi.project.Project
 import com.intellij.openapi.vfs.VfsUtil
 import com.intellij.openapi.vfs.VirtualFile
 
-import com.github.luben.zstd.Zstd
+import com.github.chenlijun99.jetbrainsassignment.zstd.Zstd
 
 import com.github.chenlijun99.jetbrainsassignment.Constants
 import com.github.chenlijun99.jetbrainsassignment.Bundle

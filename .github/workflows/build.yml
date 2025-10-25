@@ -43,6 +43,13 @@ jobs:
       # Check out the current repository
       - name: Fetch Sources
         uses: actions/checkout@v4
+        with:
+          submodules: true
+
+      - name: Setup Zig
+        uses: mlugg/setup-zig@v2
+        with:
+          version: 0.14.1
 
       # Set up the Java environment for the next steps
       - name: Setup Java
@@ -104,6 +111,13 @@ jobs:
       # Check out the current repository
       - name: Fetch Sources
         uses: actions/checkout@v4
+        with:
+          submodules: true
+
+      - name: Setup Zig
+        uses: mlugg/setup-zig@v2
+        with:
+          version: 0.14.1
 
       # Set up the Java environment for the next steps
       - name: Setup Java
