@@ -1,4 +1,4 @@
-cmake_minimum_required(VERSION 3.28)
+cmake_minimum_required(VERSION 3.22)
 
 # Export compile_commands.json by default
 set(CMAKE_EXPORT_COMPILE_COMMANDS 1)
