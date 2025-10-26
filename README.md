@@ -1,6 +1,6 @@
 # clj-zstd-util
 
-![Build](https://github.com/chenlijun99/jetbrains-assignment/workflows/Build/badge.svg?branch=main)
+![Build](https://github.com/chenlijun99/jetbrains-assignment/workflows/Build/badge.svg)
 
 <!-- Plugin description -->
 This plugin introduces an utility action to easily compress the currently opened file using the Zstandard (zstd) native library.
