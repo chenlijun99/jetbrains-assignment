@@ -3,3 +3,11 @@ plugins {
 }
 
 rootProject.name = "clj-zstd-util"
+
+dependencyResolutionManagement {
+    repositories {
+        mavenCentral()
+    }
+}
+
+include("modules:zstd-jni")

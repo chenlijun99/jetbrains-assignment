@@ -15,7 +15,6 @@ import com.intellij.openapi.components.service
 
 import com.github.chenlijun99.jetbrainsassignment.coroutine.TestAppDispatchers
 import com.github.chenlijun99.jetbrainsassignment.coroutine.runDispatchingOnUi
-import com.github.chenlijun99.jetbrainsassignment.services.ZstdCompressionService
 
 @TestDataPath("\$CONTENT_ROOT/src/test/testData")
 class ZstdCompressionServiceTest : BasePlatformTestCase() {
