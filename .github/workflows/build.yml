@@ -147,7 +147,7 @@ jobs:
 
       # Download the zstd-jni native libraries artifact
       - name: Download zstd-jni native libraries
-        uses: actions/download-artifact@v5
+        uses: actions/download-artifact@v6
         with:
           name: zstd-jni-native-libraries
           path: modules/zstd-jni/build/cmake-jni/
@@ -241,7 +241,7 @@ jobs:
           cache-read-only: true
 
       - name: Download zstd-jni native libraries
-        uses: actions/download-artifact@v5
+        uses: actions/download-artifact@v6
         with:
           name: zstd-jni-native-libraries
           path: modules/zstd-jni/build/cmake-jni/
@@ -282,7 +282,7 @@ jobs:
             | xargs -I '{}' gh api -X DELETE repos/{owner}/{repo}/releases/{}
 
       - name: Download Built Plugin
-        uses: actions/download-artifact@v5
+        uses: actions/download-artifact@v6
         with:
           name: ${{ needs.build.outputs.plugin_folder_name }}
           path: ./build/distributions/content/
